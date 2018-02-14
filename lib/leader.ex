@@ -20,7 +20,29 @@ defmodule Leader do
           end
           next acceptors, replicas, ballot_number, active, proposals
         end
+
+      { :adopted, b, pvals} ->
+        proposals = update proposals, pmax pvals
+        for { s, c } <- Map.to_list(proposals), do:
+          spawn Commander, :start, [self(), acceptors, replicas, { b, s, c }]
+          next acceptors, replicas, b, true, proposals
+
+      { :preempted, { r, _ } = b } ->
+        if b > ballot_number do
+          ballot_number = { r + 1, self() }
+          spawn Scout, :start, [self(), acceptors, ballot_number]
+          next acceptors, replicas, b, false, proposals
+        end
     end
+  end
+
+  defp pmax pvalues do
+    max_ballot_number = Enum.max Enum.map pvalues, fn ({ b, _, _ }) -> b end
+    Enum.filter pvalues, fn ({b, _, _}) -> b == max_ballot_number end
+  end
+
+  defp update x, y do
+    Map.merge y, x, fn _, c, _ -> c end
   end
 
 end
