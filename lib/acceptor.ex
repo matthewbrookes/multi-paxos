@@ -1,11 +1,11 @@
 # Matthew Brookes (mb5715) and Abhinav Mishra (am8315)
 
 defmodule Acceptor do
-  def start do
-    next -1, MapSet.new
+  def start config do
+    next config, -1, MapSet.new
   end
 
-  defp next ballot_number, accepted do
+  defp next config, ballot_number, accepted do
     receive do
       { :p1a, leader, b } ->
         if b > ballot_number do
@@ -13,7 +13,7 @@ defmodule Acceptor do
         else
           send leader, { :p1b, self(), ballot_number, accepted }
         end
-        next ballot_number, accepted
+        next config, ballot_number, accepted
 
       { :p2a, leader, { b, _, _ } = pvalue } ->
         accepted =
@@ -22,7 +22,7 @@ defmodule Acceptor do
             false -> accepted
           end
         send leader, { :p2b, self(), ballot_number }
-        next ballot_number, accepted
+        next config, ballot_number, accepted
     end
   end
 end
