@@ -5,7 +5,7 @@ defmodule Scout do
   def start leader, acceptors, ballot_number do
     for acceptor <- acceptors, do:
       send acceptor, { :p1a, self(), ballot_number }
-    next leader, acceptors, ballot_number, acceptors, MapSet.new
+    next leader, acceptors, ballot_number, MapSet.new(acceptors), MapSet.new
   end
 
   defp next leader, acceptors, ballot_number, wait_for, pvalues do
