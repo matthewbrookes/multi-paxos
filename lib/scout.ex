@@ -2,9 +2,10 @@
 
 defmodule Scout do
 
-  def start leader, acceptors, ballot_number do
+  def start leader, acceptors, {n, _} = ballot_number do
     for acceptor <- acceptors, do:
       send acceptor, { :p1a, self(), ballot_number }
+    IO.puts "Starting scout #{inspect(ballot_number)}"
     next leader, acceptors, ballot_number, MapSet.new(acceptors), MapSet.new
   end
 
@@ -12,9 +13,9 @@ defmodule Scout do
     receive do
       { :p1b, a, b, r } ->
         if b == ballot_number do
-          pvalues = MapSet.put pvalues, r
+          pvalues = MapSet.union pvalues, r
           wait_for = MapSet.delete wait_for, a
-          if MapSet.size(wait_for) < (MapSet.size(wait_for) / 2) do
+          if MapSet.size(wait_for) < (length(acceptors) / 2) do
             send leader, { :adopted, b, pvalues }
             Process.exit self(), :kill
           end

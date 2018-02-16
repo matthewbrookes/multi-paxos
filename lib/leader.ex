@@ -16,7 +16,7 @@ defmodule Leader do
   defp next config, acceptors, replicas, ballot_number, active, proposals do
     receive do
       { :propose, s, c } ->
-        if !Map.has_key? s, c do
+        if !Map.has_key? proposals, s do
           proposals = Map.put proposals, s, c
           if active do
             spawn Commander,
@@ -27,23 +27,28 @@ defmodule Leader do
         end
 
       { :adopted, b, pvals} ->
-        proposals = update proposals, pmax pvals
+        proposals = update proposals, pmax MapSet.to_list(pvals)
         for { s, c } <- Map.to_list(proposals), do:
           spawn Commander, :start, [self(), acceptors, replicas, { b, s, c }]
           next config, acceptors, replicas, b, true, proposals
 
       { :preempted, { r, _ } = b } ->
         if b > ballot_number do
+          IO.puts "Preempting #{inspect(ballot_number)} because of #{inspect{b}}"
           ballot_number = { r + 1, self() }
           spawn Scout, :start, [self(), acceptors, ballot_number]
-          next config, acceptors, replicas, b, false, proposals
+          next config, acceptors, replicas, ballot_number, false, proposals
+        else
+          next config, acceptors, replicas, ballot_number, active, proposals
         end
     end
   end
 
   defp pmax pvalues do
-    max_ballot_number = Enum.max Enum.map pvalues, fn ({ b, _, _ }) -> b end
-    Enum.filter pvalues, fn ({b, _, _}) -> b == max_ballot_number end
+    ballot_numbers = Enum.map(pvalues, fn ({ b, _, _ }) -> b end)
+    max_ballot_number = Enum.max(ballot_numbers, fn -> 0 end)
+    max_pvalues = Enum.filter pvalues, fn ({b, _, _}) -> b == max_ballot_number end
+    Map.new(Enum.map(max_pvalues, fn ({b, s, c}) -> {s, {b, c}} end))
   end
 
   defp update x, y do
