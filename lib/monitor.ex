@@ -27,7 +27,8 @@ defmodule Monitor do
     receive do
       { :client_sleep, client_num, sent } ->
         if !state.config.silent, do:
-          IO.puts "Client #{client_num} going to sleep, sent = #{sent}"
+          IO.puts "\nClient #{client_num} going to sleep, sent = #{sent}"
+
         clients = Map.put state.clients, client_num, sent
         next %{ state | clients: clients }
 
@@ -66,12 +67,9 @@ defmodule Monitor do
 
       :print ->
         clock = state.clock + state.config.print_after
+
         if !state.config.silent do
-          sorted = state.updates |> Map.to_list |> List.keysort(0)
-          IO.puts "time = #{clock}  updates done = #{inspect sorted}"
-          sorted = state.requests |> Map.to_list |> List.keysort(0)
-          IO.puts "time = #{clock} requests seen = #{inspect sorted}"
-          IO.puts ""
+          print_stats clock, state.updates, state.requests
         end
 
         if Map.size(state.clients) === state.config.n_clients do
@@ -83,7 +81,10 @@ defmodule Monitor do
             fn(x) -> x end
           )
 
-          if halt, do: send state.paxos, { :success, clock }
+          if halt do
+            print_stats clock, state.updates, state.requests
+            send state.paxos, :success
+          end
         end
 
         Process.send_after self(), :print, state.config.print_after
@@ -94,5 +95,12 @@ defmodule Monitor do
         System.halt
     end # receive
   end # next
+
+  defp print_stats clock, updates, requests do
+    sorted = updates |> Map.to_list |> List.keysort(0)
+    IO.puts "\ntime = #{clock}  updates done = #{inspect sorted}"
+    sorted = requests |> Map.to_list |> List.keysort(0)
+    IO.puts "time = #{clock} requests seen = #{inspect sorted}"
+  end
 
 end # Monitor

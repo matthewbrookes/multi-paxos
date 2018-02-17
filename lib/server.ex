@@ -4,7 +4,7 @@
 defmodule Server do
 
   def start config, server_num, paxos, monitor do
-    IO.puts "\tStarting server #{DAC.node_ip_addr()}"
+    if !config.silent, do: IO.puts "\tStarting server #{DAC.node_ip_addr()}"
 
     config   = Map.put config, :server_num, server_num
 
@@ -17,4 +17,3 @@ defmodule Server do
   end # start
 
 end # Server
-

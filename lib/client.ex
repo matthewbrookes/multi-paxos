@@ -4,7 +4,8 @@
 defmodule Client do
 
   def start config, client_num, replicas, monitor do
-    IO.puts "\tStarting client #{DAC.node_ip_addr()}"
+    if !config.silent, do: IO.puts "\tStarting client #{DAC.node_ip_addr()}"
+
     Process.send_after self(), :client_stop, config.client_stop
     next config, client_num, replicas, 0, monitor
   end # start

@@ -33,8 +33,7 @@ defmodule Paxos do
     end
 
     receive do
-      { :success, metadata } ->
-        IO.puts "Finished - #{inspect(metadata)}"
+      :success -> "Finished"
     end
 
   end # start
