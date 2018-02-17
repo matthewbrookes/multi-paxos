@@ -30,7 +30,6 @@ defmodule Replica do
       next new_state
 
     { :decision, slot, cmd } ->
-      IO.puts "Received Decison for #{inspect(cmd)}"
       new_state = %{ state | decisions: Map.put(state.decisions, slot, cmd) }
       new_state = propose(decide new_state)
       next new_state
@@ -97,6 +96,10 @@ defmodule Replica do
         send state.db, { :execute, transaction }
         send client, { :response, id, :ok }
     end
+  end # execute
+
+  defp execute _, command do
+    IO.puts "Asked to execute #{inspect(command)}"
   end # execute
 
 end # Replica
