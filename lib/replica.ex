@@ -39,9 +39,9 @@ defmodule Replica do
   defp propose state do
     window = 5
     new_state =
-      if state.s_in < state.s_out + window and not Enum.empty?(state.requests) do
+      if state.s_in < state.s_out + window and !Enum.empty? state.requests do
         new_state =
-          if not Map.has_key? state.decisions, state.s_in do
+          if !Map.has_key? state.decisions, state.s_in do
             [ c | requests ] = state.requests
             for leader <- state.leaders, do: send leader, { :propose, state.s_in, c }
             %{ state | proposals: Map.put(state.proposals, state.s_in, c), requests: requests }
@@ -92,14 +92,10 @@ defmodule Replica do
     cmds = Enum.filter(decisions_list, fn({ s, _ }) -> s < state.s_out end)
     cmds = Enum.map(cmds, fn({ _, cmd }) -> cmd end)
 
-    if not Enum.member? cmds, command do
+    if !Enum.member? cmds, command do
         send state.db, { :execute, transaction }
         send client, { :response, id, :ok }
     end
-  end # execute
-
-  defp execute _, command do
-    IO.puts "Asked to execute #{inspect(command)}"
   end # execute
 
 end # Replica

@@ -16,9 +16,9 @@ defmodule Scout do
           wait_for = MapSet.delete wait_for, a
           if MapSet.size(wait_for) < (length(acceptors) / 2) do
             send leader, { :adopted, b, pvalues }
-            Process.exit self(), :kill
+          else
+            next leader, acceptors, ballot_number, wait_for, pvalues
           end
-          next leader, acceptors, ballot_number, wait_for, pvalues
         else
           send leader, { :preempted, b }
           Process.exit self(), :kill

@@ -12,13 +12,13 @@ defmodule Acceptor do
         send leader, { :p1b, self(), b_n, accepted }
         next config, b_n, accepted
 
-      { :p2a, leader, { b, _, _ } = pvalue } ->
+      { :p2a, commander, { b, _, _ } = pvalue } ->
         accepted =
           case b == ballot_number do
             true -> MapSet.put(accepted, pvalue)
             false -> accepted
           end
-        send leader, { :p2b, self(), ballot_number }
+        send commander, { :p2b, self(), ballot_number }
         next config, ballot_number, accepted
     end
   end
