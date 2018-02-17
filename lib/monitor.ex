@@ -1,6 +1,7 @@
 # Matthew Brookes (mb5715) and Abhinav Mishra (am8315)
 
 defmodule MonitorState do
+  @enforce_keys [:paxos, :config]
   defstruct(
     paxos:        nil,
     config:       Map.new,

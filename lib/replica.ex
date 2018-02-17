@@ -1,6 +1,7 @@
 # Matthew Brookes (mb5715) and Abhinav Mishra (am8315)
 
 defmodule ReplicaState do
+  @enforce_keys [:config, :db, :leaders, :monitor]
   defstruct(
     config:    Map.new,
     db:        nil,

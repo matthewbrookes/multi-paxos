@@ -1,5 +1,17 @@
 # Matthew Brookes (mb5715) and Abhinav Mishra (am8315)
 
+defmodule LeaderState do
+  @enforce_keys [:config, :acceptors, :replicas, :ballot_number]
+  defstruct(
+    config:        Map.new,
+    acceptors:     [],
+    replicas:      [],
+    ballot_number: nil,
+    active:        false,
+    proposals:     Map.new
+  )
+end # LeaderState
+
 defmodule Leader do
 
   def start config do
@@ -8,42 +20,52 @@ defmodule Leader do
     receive do
       { :bind, acceptors, replicas } ->
         spawn Scout, :start, [self(), acceptors, ballot_number]
-        next config, acceptors, replicas, ballot_number, false, Map.new
-    end
 
+        state = %LeaderState{
+          config: config,
+          acceptors: acceptors,
+          replicas: replicas,
+          ballot_number: ballot_number
+        }
+
+        next state
+    end
   end # start
 
-  defp next config, acceptors, replicas, ballot_number, active, proposals do
+  defp next state do
     receive do
       { :propose, s, c } ->
         proposals =
-          if !Map.has_key? proposals, s do
-            if active do
+          if !Map.has_key? state.proposals, s do
+            if state.active do
               spawn Commander,
                     :start,
-                    [self(), acceptors, replicas, { ballot_number, s ,c }]
+                    [self(), state.acceptors, state.replicas,
+                    { state.ballot_number, s ,c }]
             end
-            Map.put proposals, s, c
+            Map.put state.proposals, s, c
           else
-            proposals
+            state.proposals
           end
 
-        next config, acceptors, replicas, ballot_number, active, proposals
+        next %{ state | proposals: proposals }
 
       { :adopted, b, pvals} ->
-        proposals = update proposals, pmax MapSet.to_list(pvals)
+        proposals = update state.proposals, pmax MapSet.to_list(pvals)
         for { s, c } <- Map.to_list(proposals), do:
-          spawn Commander, :start, [self(), acceptors, replicas, { b, s, c }]
+          spawn Commander,
+                :start,
+                [self(), state.acceptors, state.replicas, { b, s, c }]
 
-        next config, acceptors, replicas, b, true, proposals
+        next %{ state | proposals: proposals, active: true, ballot_number: b }
 
       { :preempted, { r, _ } = b } ->
-        if b > ballot_number do
+        if b > state.ballot_number do
           ballot_number = { r + 1, self() }
-          spawn Scout, :start, [self(), acceptors, ballot_number]
-          next config, acceptors, replicas, ballot_number, false, proposals
+          spawn Scout, :start, [self(), state.acceptors, ballot_number]
+          next %{ state | active: false, ballot_number: ballot_number }
         else
-          next config, acceptors, replicas, ballot_number, active, proposals
+          next state
         end
     end
   end
