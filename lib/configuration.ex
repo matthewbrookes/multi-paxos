@@ -24,6 +24,12 @@ defmodule Configuration do
   end
 
   def version 3 do # configuration 3
+    %{ version(1) | max_requests: 100, n_accounts: 10 }
+  end
+
+  def version n do
+    IO.puts "Error: Configuration #{n} not defined"
+    System.halt
   end
 
 end # module -----------------------

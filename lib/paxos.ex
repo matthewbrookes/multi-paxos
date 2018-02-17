@@ -1,5 +1,4 @@
-# distributed algorithms, n.dulay 2 feb 17
-# coursework 2, paxos made moderately complex
+# Matthew Brookes (mb5715) and Abhinav Mishra (am8315)
 
 defmodule Paxos do
 

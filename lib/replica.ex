@@ -54,8 +54,11 @@ defmodule Replica do
         new_state =
           if !Map.has_key? state.decisions, state.s_in do
             [ c | requests ] = state.requests
-            for leader <- state.leaders, do: send leader, { :propose, state.s_in, c }
-            %{ state | proposals: Map.put(state.proposals, state.s_in, c), requests: requests }
+            for leader <- state.leaders, do:
+              send leader, { :propose, state.s_in, c }
+
+            %{ state | proposals: Map.put(state.proposals, state.s_in, c),
+              requests: requests }
           else
             state
           end

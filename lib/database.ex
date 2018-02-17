@@ -17,7 +17,7 @@ defmodule Database do
       balance2 = Map.get balances, account2, 0
       balances = Map.put balances, account2, balance2 - amount
 
-      send monitor, { :db_update, config.server_num, db_seqnum+1, transaction }
+      send monitor, { :db_update, balances, config.server_num, db_seqnum+1, transaction }
       next config, monitor, db_seqnum+1, balances
 
     _ ->
