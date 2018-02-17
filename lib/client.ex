@@ -3,19 +3,19 @@
 
 defmodule Client do
 
-  def start config, client_num, replicas do
+  def start config, client_num, replicas, monitor do
     IO.puts "\tStarting client #{DAC.node_ip_addr()}"
     Process.send_after self(), :client_stop, config.client_stop
-    next config, client_num, replicas, 0
+    next config, client_num, replicas, 0, monitor
   end # start
 
-  defp next config, client_num, replicas, sent do
+  defp next config, client_num, replicas, sent, monitor do
     # Setting client_sleep to 0 will completely overload the system
     # with lots of requests and lots of spawned rocesses.
 
     receive do
     :client_stop ->
-      IO.puts "Client #{client_num} going to sleep, sent = #{sent}"
+      send monitor, { :client_sleep, client_num, sent }
       Process.sleep :infinity
 
     after config.client_sleep ->
@@ -34,7 +34,7 @@ defmodule Client do
       if sent == config.max_requests, do: send self(), :client_stop
 
       # handle_reply() -- uncomment if replies are implemented
-      next config, client_num, replicas, sent
+      next config, client_num, replicas, sent, monitor
     end
   end # next
 

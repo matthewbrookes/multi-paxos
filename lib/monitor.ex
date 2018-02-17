@@ -1,20 +1,40 @@
+# Matthew Brookes (mb5715) and Abhinav Mishra (am8315)
 
-# distributed algorithms, n.dulay 2 feb 18
-# coursework 2, paxos made moderately complex
+defmodule MonitorState do
+  defstruct(
+    paxos:        nil,
+    config:       Map.new,
+    clock:        0,
+    updates:      Map.new,
+    requests:     Map.new,
+    transactions: Map.new,
+    clients:      Map.new
+  )
+end # MonitorState
 
 defmodule Monitor do
 
-  def start config do
+  def start config, paxos do
     Process.send_after self(), :print, config.print_after
-    next config, 0, Map.new, Map.new, Map.new
+    state = %MonitorState{
+      paxos: paxos,
+      config: config
+    }
+    next state
   end # start
 
-  defp next config, clock, requests, updates, transactions do
+  defp next state do
     receive do
+      { :client_sleep, client_num, sent } ->
+        if !state.config.silent, do:
+          IO.puts "Client #{client_num} going to sleep, sent = #{sent}"
+        clients = Map.put state.clients, client_num, sent
+        next %{ state | clients: clients }
+
       { :db_update, db, seqnum, transaction } ->
         { :move, amount, from, to } = transaction
 
-        done = Map.get updates, db, 0
+        done = Map.get state.updates, db, 0
 
         if seqnum != done + 1  do
           IO.puts "  ** error db #{db}: seq #{seqnum} expecting #{done+1}"
@@ -22,39 +42,52 @@ defmodule Monitor do
         end
 
         transactions =
-          case Map.get transactions, seqnum do
+          case Map.get state.transactions, seqnum do
             nil ->
               # IO.puts "db #{db} seq #{seqnum} #{done}"
-              Map.put transactions, seqnum, %{ amount: amount, from: from, to: to }
+              Map.put state.transactions, seqnum, %{ amount: amount, from: from, to: to }
 
             t -> # already logged - check transaction
               if amount != t.amount or from != t.from or to != t.to do
                 IO.puts " ** error db #{db}.#{done} [#{amount},#{from},#{to}] " <>
-                  "= log #{done}/#{Map.size transactions} [#{t.amount},#{t.from},#{t.to}]"
+                  "= log #{done}/#{Map.size state.transactions} [#{t.amount},#{t.from},#{t.to}]"
                 System.halt
               end
-              transactions
+              state.transactions
           end # case
 
-          updates = Map.put updates, db, seqnum
-          next config, clock, requests, updates, transactions
+          updates = Map.put state.updates, db, seqnum
+          next %{ state | updates: updates, transactions: transactions }
 
       { :client_request, server_num } ->  # requests by replica
-        seen = Map.get requests, server_num, 0
-        requests = Map.put requests, server_num, seen + 1
-        next config, clock, requests, updates, transactions
+        seen = Map.get state.requests, server_num, 0
+        requests = Map.put state.requests, server_num, seen + 1
+        next %{ state | requests: requests }
 
-        :print ->
-        clock = clock + config.print_after
-        sorted = updates |> Map.to_list |> List.keysort(0)
-        IO.puts "time = #{clock}  updates done = #{inspect sorted}"
-        sorted = requests |> Map.to_list |> List.keysort(0)
-        IO.puts "time = #{clock} requests seen = #{inspect sorted}"
-        IO.puts ""
-        Process.send_after self(), :print, config.print_after
-        next config, clock, requests, updates, transactions
+      :print ->
+        clock = state.clock + state.config.print_after
+        if !state.config.silent do
+          sorted = state.updates |> Map.to_list |> List.keysort(0)
+          IO.puts "time = #{clock}  updates done = #{inspect sorted}"
+          sorted = state.requests |> Map.to_list |> List.keysort(0)
+          IO.puts "time = #{clock} requests seen = #{inspect sorted}"
+          IO.puts ""
+        end
 
-        # ** ADD ADDITIONAL MESSAGES HERE
+        if Map.size(state.clients) === state.config.n_clients do
+          total_messages = Enum.sum(for { _, sent } <- state.clients, do: sent)
+
+          halt = Enum.all?(
+            (for { _, num_updates } <- state.updates, do:
+              num_updates === total_messages),
+            fn(x) -> x end
+          )
+
+          if halt, do: send state.paxos, { :success, clock }
+        end
+
+        Process.send_after self(), :print, state.config.print_after
+        next %{ state | clock: clock }
 
       _ ->
         IO.puts "monitor: unexpected message"

@@ -51,11 +51,8 @@ defmodule DAC do
     # add no. of servers and clients
     config = Map.put config, :n_servers, String.to_integer(Enum.at System.argv, 2)
     config = Map.put config, :n_clients, String.to_integer(Enum.at System.argv, 3)
+    config = Map.put config, :silent, ("#{Enum.at System.argv, 4}" == "silent")
 
     config
   end
 end # module -----------------------
-
-
-
-
