@@ -1,8 +1,17 @@
 # Matthew Brookes (mb5715) and Abhinav Mishra (am8315)
 
 defmodule ReplicaState do
-  defstruct config: Map.new, db: nil, monitor: nil, leaders: [], s_in: 1,
-    s_out: 1, requests: [], proposals: Map.new, decisions: Map.new
+  defstruct(
+    config:    Map.new,
+    db:        nil,
+    decisions: Map.new,
+    leaders:   [],
+    monitor:   nil,
+    proposals: Map.new,
+    requests:  [],
+    s_in:      1,
+    s_out:     1
+  )
 end # ReplicaState
 
 
@@ -12,10 +21,10 @@ defmodule Replica do
     receive do
       { :bind, leaders } ->
         replica_state = %ReplicaState{
-          config: config,
-          db: db,
-          monitor: monitor,
-          leaders: leaders
+          config:  config,
+          db:      db,
+          leaders: leaders,
+          monitor: monitor
         }
 
         next replica_state
@@ -26,6 +35,7 @@ defmodule Replica do
   defp next state do
     receive do
     { :client_request, cmd } ->
+      send state.monitor, { :client_request, state.config.server_num }
       new_state = propose %{ state | requests: [cmd | state.requests] }
       next new_state
 
