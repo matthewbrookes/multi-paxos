@@ -47,7 +47,7 @@ defmodule Replica do
   end # next
 
   defp propose state do
-    window = 5
+    window = state.config.window_size
     new_state =
       if state.s_in < state.s_out + window and !Enum.empty? state.requests do
         new_state =
@@ -77,7 +77,7 @@ defmodule Replica do
               c2 = Map.get state.proposals, state.s_out
               proposals = Map.delete state.proposals, state.s_out
               requests =
-                if c1 == c2 do
+                if c1 !== c2 do
                   [c2 | state.requests]
                 else
                   state.requests
