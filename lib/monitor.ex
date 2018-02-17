@@ -108,12 +108,14 @@ defmodule Monitor do
   end
 
   defp print_db dbs do
-    for { num, balances } <- dbs do
+    sorted_dbs = dbs |> Map.to_list |> List.keysort(0)
+    for { num, balances } <- sorted_dbs do
       IO.puts "-------------------------------"
       IO.puts "Database Number #{num}"
       IO.puts "-------------------------------"
 
-      for { account, balance } <- balances, do:
+      sorted_balances = balances |> Map.to_list |> List.keysort(0)
+      for { account, balance } <- sorted_balances, do:
         IO.puts "Account ##{account}:\t#{balance}"
 
     end
