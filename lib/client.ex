@@ -5,14 +5,14 @@
 defmodule Client do
 
 def start config, client_num, replicas do
-  IO.puts ["          Starting client ", DAC.node_ip_addr()]
+  # IO.puts ["          Starting client ", DAC.node_ip_addr()]
   Process.send_after self(), :client_stop, config.client_stop
   next config, client_num, replicas, 0
 end # start
 
 defp next config, client_num, replicas, sent do
   # Setting client_sleep to 0 will completely overload the system
-  # with lots of requests and lots of spawned rocesses. 
+  # with lots of requests and lots of spawned rocesses.
 
   receive do
   :client_stop ->
@@ -38,15 +38,14 @@ defp next config, client_num, replicas, sent do
     next config, client_num, replicas, sent
   end
 end # next
-    
+
 """
 defp handle_reply do  # this discards all replies received
   receive do
   { :reply, _cid, _result } -> handle_reply()
   after 0 -> true
   end # receive
-end # handle_reply 
+end # handle_reply
 """
 
 end # Client
-
