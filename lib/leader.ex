@@ -71,10 +71,13 @@ defmodule Leader do
   end
 
   defp pmax pvalues do
-    ballot_numbers = Enum.map(pvalues, fn ({ b, _, _ }) -> b end)
-    max_ballot_number = Enum.max(ballot_numbers, fn -> -1 end)
-    max_pvalues = Enum.filter pvalues, fn ({ b, _, _ }) -> b == max_ballot_number end
-    Map.new Enum.map(max_pvalues, fn ({ _, s, c }) -> { s, c } end)
+    max_ballot_number =
+      Enum.map(pvalues, fn ({ b, _, _ }) -> b end)
+      |> Enum.max(fn -> -1 end)
+
+    Enum.filter(pvalues, fn ({ b, _, _ }) -> b == max_ballot_number end)
+    |> Enum.map(fn ({ _, s, c }) -> { s, c } end)
+    |> Map.new
   end
 
   defp update x, y do

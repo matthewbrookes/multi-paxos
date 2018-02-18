@@ -37,13 +37,13 @@ defmodule Replica do
     receive do
     { :client_request, cmd } ->
       send state.monitor, { :client_request, state.config.server_num }
-      new_state = propose %{ state | requests: [cmd | state.requests] }
-      next new_state
+      propose(%{ state | requests: [cmd | state.requests] })
+      |> next
 
     { :decision, slot, cmd } ->
-      new_state = %{ state | decisions: Map.put(state.decisions, slot, cmd) }
-      new_state = propose(decide new_state)
-      next new_state
+      decide(%{ state | decisions: Map.put(state.decisions, slot, cmd) })
+      |> propose
+      |> next
     end # receive
   end # next
 
@@ -102,11 +102,13 @@ defmodule Replica do
   end # decide
 
   defp execute state, { client, id, transaction } = command do
-    decisions_list = Map.to_list state.decisions
-    cmds = Enum.filter(decisions_list, fn({ s, _ }) -> s < state.s_out end)
-    cmds = Enum.map(cmds, fn({ _, cmd }) -> cmd end)
+    should_execute =
+      Map.to_list(state.decisions)
+      |> Enum.filter(fn({ s, _ }) -> s < state.s_out end)
+      |> Enum.map(fn({ _, cmd }) -> cmd end)
+      |> Enum.member?(command)
 
-    if !Enum.member? cmds, command do
+    if !should_execute do
         send state.db, { :execute, transaction }
         send client, { :response, id, :ok }
     end

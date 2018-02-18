@@ -21,7 +21,7 @@ defmodule Scout do
           end
         else
           send leader, { :preempted, b }
-          Process.exit self(), :kill
+          Process.exit self(), :normal
         end
     end
   end
