@@ -20,7 +20,7 @@ defmodule Server do
     if config.setup === :'docker' do
       receive do
         :kill ->
-          Process.whereis(:keep_alive) |> Process.exit(:kill)
+          Process.whereis(:keep_alive) |> send(:kill)
         end
     end
   end # start

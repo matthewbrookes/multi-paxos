@@ -25,7 +25,7 @@ defmodule Client do
         config.setup === :'docker' ->
           receive do
             :kill ->
-              Process.whereis(:keep_alive) |> Process.exit(:kill)
+              Process.whereis(:keep_alive) |> send(:kill)
           end
         true ->
           IO.puts "Error: Unexpected setup mode #{config.setup}"
