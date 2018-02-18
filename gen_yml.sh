@@ -23,10 +23,7 @@ version: "3.4"
 
 x-common:
   &defaults
-    image: elixir:alpine
-    volumes:
-      - .:/project
-    working_dir: /project
+    build: .
     networks:
       - network
 
@@ -52,7 +49,7 @@ do
     container_name: server${k}
     command: >
       elixir --name server${k}@server${k}.localdomain --cookie pass
-             -S mix run --no-halt
+             -S mix run -e KeepAlive.start
     <<: *defaults
 
 ENDSERVERS
@@ -66,7 +63,7 @@ do
     container_name: client${k}
     command: >
       elixir --name client${k}@client${k}.localdomain --cookie pass
-             -S mix run --no-halt
+             -S mix run -e KeepAlive.start
     <<: *defaults
 
 ENDCLIENTS
@@ -79,5 +76,3 @@ echo >> $FILE << ENDFOOTER
 # - tabs are a no-no, use spaces
 
 ENDFOOTER
-
-

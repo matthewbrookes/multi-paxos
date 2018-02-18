@@ -6,6 +6,8 @@ defmodule Client do
   def start config, client_num, replicas, monitor do
     if !config.silent, do: IO.puts "\tStarting client #{DAC.node_ip_addr()}"
 
+    send monitor, { :keep_alive, self() }
+
     Process.send_after self(), :client_stop, config.client_stop
     next config, client_num, replicas, 0, monitor
   end # start
@@ -17,7 +19,17 @@ defmodule Client do
     receive do
     :client_stop ->
       send monitor, { :client_sleep, client_num, sent }
-      Process.sleep :infinity
+      cond do
+        config.setup === :'single' ->
+          Process.sleep :infinity
+        config.setup === :'docker' ->
+          receive do
+            :kill ->
+              Process.whereis(:keep_alive) |> Process.exit(:kill)
+          end
+        true ->
+          IO.puts "Error: Unexpected setup mode #{config.setup}"
+      end
 
     after config.client_sleep ->
       account1 = Enum.random 1 .. config.n_accounts

@@ -10,7 +10,8 @@ defmodule MonitorState do
     requests:     Map.new,
     transactions: Map.new,
     dbs:          Map.new,
-    clients:      Map.new
+    clients:      Map.new,
+    keep_alive:   []
   )
 end # MonitorState
 
@@ -27,6 +28,8 @@ defmodule Monitor do
 
   defp next state do
     receive do
+      { :keep_alive, pid } ->
+        next %{ state | keep_alive: [pid | state.keep_alive] }
       { :client_sleep, client_num, sent } ->
         if !state.config.silent, do:
           IO.puts "\nClient #{client_num} going to sleep, sent = #{sent}"
@@ -88,6 +91,10 @@ defmodule Monitor do
             print_stats clock, state.updates, state.requests
             print_db state.dbs
             send state.paxos, :success
+            if state.config.setup === :'docker' do
+              for pid <- state.keep_alive, do:
+                send pid, :kill
+            end
           end
         end
 
