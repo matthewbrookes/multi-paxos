@@ -62,6 +62,7 @@ defmodule Leader do
       { :preempted, { r, _ } = b } ->
         if b > state.ballot_number do
           ballot_number = { r + 1, self() }
+          DAC.random(100) |> Process.sleep
           spawn Scout, :start, [self(), state.acceptors, ballot_number]
           next %{ state | active: false, ballot_number: ballot_number }
         else
